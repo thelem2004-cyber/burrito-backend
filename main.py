@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from routers import conductor, pasajero, buses, usuarios
-from routers import rutas_trazadas
 from database.conexion import engine
 from database import modelos
 
@@ -16,7 +15,6 @@ app.include_router(conductor.router)
 app.include_router(pasajero.router)
 app.include_router(buses.router)
 app.include_router(usuarios.router)
-app.include_router(rutas_trazadas.router)
 
 @app.get("/", tags=["General"])
 def inicio():
