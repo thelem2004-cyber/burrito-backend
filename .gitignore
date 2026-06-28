@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+burrito.db
+firebase_credentials.json
+.env
+*.db

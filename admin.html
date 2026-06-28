@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>El Burrito — Panel Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #1a1a2e; color: white; }
+    header {
+      background: #16213e;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #0f3460;
+    }
+    header h1 { font-size: 18px; color: #e94560; }
+    #btn-trazado {
+      background: #e94560;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    #btn-trazado:hover { background: #c0392b; }
+    #contenedor { display: flex; height: calc(100vh - 52px); }
+    #mapa { flex: 1; }
+    #panel {
+      width: 260px;
+      background: #16213e;
+      padding: 15px;
+      overflow-y: auto;
+      border-left: 2px solid #0f3460;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .seccion { background: #0f3460; border-radius: 8px; padding: 12px; }
+    .seccion h2 { font-size: 13px; color: #e94560; margin-bottom: 10px; }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .toggle-row input[type="checkbox"] {
+      width: 16px; height: 16px; cursor: pointer; accent-color: #e94560;
+    }
+    .bus-card {
+      background: #16213e;
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 8px;
+      border-left: 4px solid #e94560;
+      font-size: 12px;
+    }
+    .bus-card.sin-señal { border-left-color: #888; opacity: 0.7; }
+    .bus-card h3 { font-size: 13px; margin-bottom: 4px; }
+    .bus-card p { color: #ccc; margin: 2px 0; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    .badge.activo { background: #27ae60; }
+    .badge.sin-señal { background: #888; }
+    #ultimo-update { font-size: 11px; color: #888; }
+    .leyenda p { font-size: 12px; margin: 3px 0; color: #ccc; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🚌 El Burrito — Panel Admin</h1>
+  <button id="btn-trazado" onclick="window.location.href='/trazado/pagina'">
+    ✏️ Trazar Ruta
+  </button>
+</header>
+
+<div id="contenedor">
+  <div id="mapa"></div>
+  <div id="panel">
+
+    <div class="seccion">
+      <h2>⚙️ Opciones de visualización</h2>
+      <label class="toggle-row">
+        <input type="checkbox" id="chk-rutas" onchange="toggleRutas()">
+        Visualizar rutas trazadas
+      </label>
+    </div>
+
+    <div class="seccion">
+      <h2>🗺️ Leyenda</h2>
+      <div class="leyenda">
+        <p>🚌 Bus activo</p>
+        <p>⬜ Bus sin señal</p>
+        <p>📍 Paradero</p>
+      </div>
+    </div>
+
+    <div class="seccion">
+      <h2>🟢 Buses en servicio</h2>
+      <div id="lista-buses">Cargando...</div>
+      <p id="ultimo-update"></p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const mapa = L.map('mapa').setView([-11.9700, -77.0450], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(mapa);
+
+  // ─── Iconos ───────────────────────────────────────────────────────────────
+  function iconoBus(conSenial) {
+    return L.divIcon({
+      className: '',
+      html: `<div style="background:${conSenial ? '#e94560' : '#888'};color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4)">🚌</div>`,
+      iconSize: [36, 36], iconAnchor: [18, 18],
+    });
+  }
+  function iconoParadero() {
+    return L.divIcon({
+      className: '',
+      html: `<div style="background:#f39c12;color:white;border-radius:4px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.4)">📍</div>`,
+      iconSize: [26, 26], iconAnchor: [13, 13],
+    });
+  }
+
+  // ─── Paraderos ────────────────────────────────────────────────────────────
+  async function cargarParaderos() {
+    try {
+      const res = await fetch('/rutas');
+      const data = await res.json();
+      for (const [, ruta] of Object.entries(data.rutas)) {
+        for (const p of ruta.paraderos) {
+          L.marker([p.lat, p.lng], { icon: iconoParadero() })
+            .addTo(mapa)
+            .bindPopup(`<b>${p.nombre}</b><br>Ruta: ${ruta.nombre}<br>ID: ${p.id}`);
+        }
+      }
+    } catch(e) { console.error('Error paraderos:', e); }
+  }
+
+  // ─── Rutas trazadas ───────────────────────────────────────────────────────
+  let capasRutas = [];
+  let rutasCargadas = false;
+
+  async function toggleRutas() {
+    const activo = document.getElementById('chk-rutas').checked;
+    if (activo) {
+      if (!rutasCargadas) await cargarRutas();
+      capasRutas.forEach(c => c.addTo(mapa));
+    } else {
+      capasRutas.forEach(c => mapa.removeLayer(c));
+    }
+  }
+
+  async function cargarRutas() {
+    try {
+      const res = await fetch('/trazado/todas');
+      const data = await res.json();
+      capasRutas = [];
+      for (const [ruta, lapices] of Object.entries(data.trazados)) {
+        for (const lapiz of lapices) {
+          if (lapiz.puntos.length > 1) {
+            const linea = L.polyline(lapiz.puntos, {
+              color: lapiz.color,
+              weight: 4,
+              opacity: 0.85
+            });
+            linea.bindPopup(`Ruta: ${ruta}`);
+            capasRutas.push(linea);
+          }
+        }
+      }
+      rutasCargadas = true;
+    } catch(e) { console.error('Error rutas:', e); }
+  }
+
+  // ─── Buses ────────────────────────────────────────────────────────────────
+  const marcadores = {};
+
+  async function actualizarBuses() {
+    try {
+      const res = await fetch('/buses');
+      const data = await res.json();
+      const lista = document.getElementById('lista-buses');
+      if (data.buses.length === 0) {
+        lista.innerHTML = '<p style="color:#888;font-size:12px;">Sin buses activos.</p>';
+        return;
+      }
+      lista.innerHTML = '';
+      data.buses.forEach(bus => {
+        if (marcadores[bus.bus_id]) {
+          marcadores[bus.bus_id].setLatLng([bus.latitud, bus.longitud]);
+          marcadores[bus.bus_id].setIcon(iconoBus(bus.con_señal));
+        } else {
+          marcadores[bus.bus_id] = L.marker([bus.latitud, bus.longitud], {
+            icon: iconoBus(bus.con_señal)
+          }).addTo(mapa).bindPopup(`<b>${bus.bus_id}</b><br>Ruta: ${bus.ruta}<br>${bus.con_señal ? '✅ Activo' : '❌ Sin señal'}`);
+        }
+        const card = document.createElement('div');
+        card.className = `bus-card ${bus.con_señal ? '' : 'sin-señal'}`;
+        card.innerHTML = `
+          <h3>🚌 ${bus.bus_id}</h3>
+          <p>Ruta: <b>${bus.ruta}</b></p>
+          <p>Lat: ${bus.latitud.toFixed(5)}</p>
+          <p>Lng: ${bus.longitud.toFixed(5)}</p>
+          <p>${bus.segundos_sin_actualizar}s sin actualizar</p>
+          <span class="badge ${bus.con_señal ? 'activo' : 'sin-señal'}">
+            ${bus.con_señal ? '● ACTIVO' : '● SIN SEÑAL'}
+          </span>`;
+        lista.appendChild(card);
+      });
+      document.getElementById('ultimo-update').textContent =
+        'Actualizado: ' + new Date().toLocaleTimeString();
+    } catch(e) {
+      document.getElementById('lista-buses').innerHTML =
+        '<p style="color:#e94560;">Error de conexión.</p>';
+    }
+  }
+
+  cargarParaderos();
+  actualizarBuses();
+  setInterval(actualizarBuses, 3000);
+</script>
+</body>
+</html>
