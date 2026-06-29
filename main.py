@@ -1,7 +1,9 @@
 from fastapi import FastAPI
-from routers import conductor, pasajero, buses, usuarios
+from routers import conductor, pasajero, buses, usuarios, recorridos
 from database.conexion import engine
 from database import modelos
+from database.conexion import SessionLocal
+from database.modelos import Bus
 
 modelos.Base.metadata.create_all(bind=engine)
 
@@ -15,6 +17,30 @@ app.include_router(conductor.router)
 app.include_router(pasajero.router)
 app.include_router(buses.router)
 app.include_router(usuarios.router)
+app.include_router(recorridos.router)
+
+
+def poblar_buses():
+    """Agrega los buses reales al sistema si no existen."""
+    db = SessionLocal()
+    try:
+        buses_iniciales = [
+            {"placa": "BUS-01", "ruta": None},
+            {"placa": "BUS-02", "ruta": None},
+            {"placa": "BUS-03", "ruta": None},
+            {"placa": "BUS-04", "ruta": None},
+        ]
+        for b in buses_iniciales:
+            existe = db.query(Bus).filter(Bus.placa == b["placa"]).first()
+            if not existe:
+                db.add(Bus(placa=b["placa"], ruta=b["ruta"], activo=False))
+        db.commit()
+    finally:
+        db.close()
+
+
+poblar_buses()
+
 
 @app.get("/", tags=["General"])
 def inicio():

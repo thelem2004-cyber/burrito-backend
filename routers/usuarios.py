@@ -3,12 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from database.conexion import get_db
-from database.modelos import Usuario, Conductor
+from database.modelos import Usuario
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
-
-# ─── Modelos de entrada ───────────────────────────────────────────────────────
 
 class RegistroUsuario(BaseModel):
     nombre: str
@@ -16,17 +14,11 @@ class RegistroUsuario(BaseModel):
     password: str
     tipo: str  # "pasajero" o "conductor"
 
+
 class LoginUsuario(BaseModel):
     correo: str
     password: str
 
-class RegistroConductor(BaseModel):
-    usuario_id: int
-    bus_id: str
-    ruta: str
-
-
-# ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @router.post("/registro", summary="Registrar nuevo usuario")
 def registrar(datos: RegistroUsuario, db: Session = Depends(get_db)):
@@ -38,7 +30,7 @@ def registrar(datos: RegistroUsuario, db: Session = Depends(get_db)):
     usuario = Usuario(
         nombre=datos.nombre,
         correo=datos.correo,
-        password=datos.password,  # en producción se encriptaría con bcrypt
+        password=datos.password,
         tipo=datos.tipo
     )
     db.add(usuario)
@@ -64,29 +56,6 @@ def login(datos: LoginUsuario, db: Session = Depends(get_db)):
         "tipo": usuario.tipo
     }
 
-
-@router.post("/conductor", summary="Registrar datos de conductor")
-def registrar_conductor(datos: RegistroConductor, db: Session = Depends(get_db)):
-    """Asocia un usuario tipo conductor con un bus y ruta."""
-    conductor = Conductor(
-        usuario_id=datos.usuario_id,
-        bus_id=datos.bus_id,
-        ruta=datos.ruta
-    )
-    db.add(conductor)
-    db.commit()
-    db.refresh(conductor)
-    return {"mensaje": "Conductor registrado", "id": conductor.id}
-
-
-@router.get("/conductores", summary="Lista de conductores")
-def listar_conductores(db: Session = Depends(get_db)):
-    """Devuelve todos los conductores registrados."""
-    conductores = db.query(Conductor).all()
-    return {"conductores": [
-        {"id": c.id, "usuario_id": c.usuario_id, "bus_id": c.bus_id, "ruta": c.ruta}
-        for c in conductores
-    ]}
 
 @router.put("/{usuario_id}", summary="Actualizar nombre de usuario")
 def actualizar_nombre(usuario_id: int, datos: dict, db: Session = Depends(get_db)):

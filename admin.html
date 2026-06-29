@@ -82,9 +82,16 @@
 
 <header>
   <h1>🚌 El Burrito — Panel Admin</h1>
-  <button id="btn-trazado" onclick="window.location.href='/trazado/pagina'">
-    ✏️ Trazar Ruta
-  </button>
+  <div style="display:flex; gap:8px;">
+    <button onclick="window.location.href='/recorridos/pagina'"
+      style="background:#0f3460;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;">
+      📋 Recorridos
+    </button>
+    <button onclick="window.location.href='/trazado/pagina'"
+      style="background:#e94560;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;">
+      ✏️ Trazar Ruta
+    </button>
+  </div>
 </header>
 
 <div id="contenedor">
@@ -239,3 +246,4 @@
 </script>
 </body>
 </html>
+

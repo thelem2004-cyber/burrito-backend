@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>El Burrito — Historial de Recorridos</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #1a1a2e; color: white; }
+    header {
+      background: #16213e;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #0f3460;
+    }
+    header h1 { font-size: 18px; color: #e94560; }
+    #btn-volver {
+      background: #0f3460;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    #btn-volver:hover { background: #1a4a7a; }
+    #contenedor { display: flex; height: calc(100vh - 52px); }
+
+    /* Panel izquierdo - tabla */
+    #panel-lista {
+      width: 380px;
+      background: #16213e;
+      overflow-y: auto;
+      border-right: 2px solid #0f3460;
+      display: flex;
+      flex-direction: column;
+    }
+    #panel-lista h2 {
+      font-size: 14px;
+      color: #e94560;
+      padding: 14px;
+      border-bottom: 1px solid #0f3460;
+    }
+    .recorrido-card {
+      padding: 12px 14px;
+      border-bottom: 1px solid #0f3460;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .recorrido-card:hover { background: #0f3460; }
+    .recorrido-card.activo { background: #0f3460; border-left: 4px solid #e94560; }
+    .recorrido-card h3 { font-size: 13px; font-weight: bold; margin-bottom: 4px; }
+    .recorrido-card p { font-size: 11px; color: #aaa; margin: 2px 0; }
+    .badge-completado {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    .badge-completado.si { background: #27ae60; }
+    .badge-completado.no { background: #e94560; }
+    #sin-recorridos {
+      padding: 20px;
+      text-align: center;
+      color: #888;
+      font-size: 13px;
+    }
+
+    /* Panel derecho - mapa */
+    #panel-mapa { flex: 1; display: flex; flex-direction: column; }
+    #info-recorrido {
+      background: #16213e;
+      padding: 12px 16px;
+      border-bottom: 2px solid #0f3460;
+      display: none;
+    }
+    #info-recorrido h3 { font-size: 14px; color: #e94560; margin-bottom: 6px; }
+    #info-recorrido p { font-size: 12px; color: #ccc; margin: 2px 0; }
+    #mapa { flex: 1; }
+    #placeholder-mapa {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      font-size: 14px;
+      flex-direction: column;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📋 Historial de Recorridos</h1>
+  <button id="btn-volver" onclick="window.location.href='/admin'">← Volver al Admin</button>
+</header>
+
+<div id="contenedor">
+  <!-- Panel izquierdo -->
+  <div id="panel-lista">
+    <h2>Recorridos registrados</h2>
+    <div id="lista-recorridos">
+      <div id="sin-recorridos">Cargando...</div>
+    </div>
+  </div>
+
+  <!-- Panel derecho -->
+  <div id="panel-mapa">
+    <div id="info-recorrido">
+      <h3 id="info-titulo">—</h3>
+      <p id="info-inicio">—</p>
+      <p id="info-fin">—</p>
+      <p id="info-puntos">—</p>
+    </div>
+    <div id="placeholder-mapa">
+      <span style="font-size:40px">🗺️</span>
+      <span>Selecciona un recorrido para ver su ruta</span>
+    </div>
+    <div id="mapa" style="display:none; flex:1;"></div>
+  </div>
+</div>
+
+<script>
+  let mapa = null;
+  let lineaActual = null;
+  let marcadoresActuales = [];
+
+  // ── Cargar lista de recorridos ─────────────────────────────────────────────
+  async function cargarRecorridos() {
+    try {
+      const res = await fetch('/recorridos/');
+      const data = await res.json();
+      const lista = document.getElementById('lista-recorridos');
+
+      if (data.recorridos.length === 0) {
+        lista.innerHTML = '<div id="sin-recorridos">No hay recorridos registrados aún.</div>';
+        return;
+      }
+
+      lista.innerHTML = '';
+      data.recorridos.forEach(r => {
+        const card = document.createElement('div');
+        card.className = 'recorrido-card';
+        card.id = `rec-${r.id}`;
+
+        const inicio = r.hora_inicio
+          ? new Date(r.hora_inicio).toLocaleString('es-PE')
+          : '—';
+        const fin = r.hora_fin
+          ? new Date(r.hora_fin).toLocaleString('es-PE')
+          : 'En curso';
+
+        card.innerHTML = `
+          <h3>🚌 ${r.bus_placa} — ${r.ruta}</h3>
+          <p>Inicio: ${inicio}</p>
+          <p>Fin: ${fin}</p>
+          <span class="badge-completado ${r.completado ? 'si' : 'no'}">
+            ${r.completado ? '✓ Completado' : '● En curso'}
+          </span>
+        `;
+        card.onclick = () => verRecorrido(r);
+        lista.appendChild(card);
+      });
+    } catch(e) {
+      document.getElementById('lista-recorridos').innerHTML =
+        '<div id="sin-recorridos">Error cargando recorridos.</div>';
+    }
+  }
+
+  // ── Ver recorrido en el mapa ───────────────────────────────────────────────
+  async function verRecorrido(recorrido) {
+    // Resaltar card seleccionada
+    document.querySelectorAll('.recorrido-card').forEach(c =>
+      c.classList.remove('activo'));
+    document.getElementById(`rec-${recorrido.id}`)?.classList.add('activo');
+
+    try {
+      const res = await fetch(`/recorridos/${recorrido.id}/puntos`);
+      const data = await res.json();
+      const puntos = data.puntos;
+
+      // Mostrar info
+      const infoDiv = document.getElementById('info-recorrido');
+      infoDiv.style.display = 'block';
+      document.getElementById('info-titulo').textContent =
+        `🚌 ${recorrido.bus_placa} — ${recorrido.ruta}`;
+      document.getElementById('info-inicio').textContent =
+        `Inicio: ${recorrido.hora_inicio
+          ? new Date(recorrido.hora_inicio).toLocaleString('es-PE') : '—'}`;
+      document.getElementById('info-fin').textContent =
+        `Fin: ${recorrido.hora_fin
+          ? new Date(recorrido.hora_fin).toLocaleString('es-PE') : 'En curso'}`;
+      document.getElementById('info-puntos').textContent =
+        `Puntos registrados: ${puntos.length}`;
+
+      if (puntos.length === 0) {
+        document.getElementById('placeholder-mapa').style.display = 'flex';
+        document.getElementById('mapa').style.display = 'none';
+        document.getElementById('placeholder-mapa').innerHTML =
+          '<span style="font-size:40px">📍</span><span>Este recorrido no tiene puntos GPS registrados aún.</span>';
+        return;
+      }
+
+      // Mostrar mapa
+      document.getElementById('placeholder-mapa').style.display = 'none';
+      document.getElementById('mapa').style.display = 'block';
+
+      // Inicializar mapa si no existe
+      if (!mapa) {
+        mapa = L.map('mapa').setView([-12.0566, -77.0833], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(mapa);
+      }
+
+      // Limpiar capas anteriores
+      if (lineaActual) mapa.removeLayer(lineaActual);
+      marcadoresActuales.forEach(m => mapa.removeLayer(m));
+      marcadoresActuales = [];
+
+      // Dibujar línea del recorrido
+      const coordenadas = puntos.map(p => [p.lat, p.lng]);
+      lineaActual = L.polyline(coordenadas, {
+        color: '#e94560',
+        weight: 4,
+        opacity: 0.85
+      }).addTo(mapa);
+
+      // Marcador de inicio
+      const inicio = L.circleMarker(coordenadas[0], {
+        radius: 8,
+        fillColor: '#27ae60',
+        color: 'white',
+        weight: 2,
+        fillOpacity: 1
+      }).addTo(mapa).bindPopup('Inicio del recorrido');
+      marcadoresActuales.push(inicio);
+
+      // Marcador de fin
+      const fin = L.circleMarker(coordenadas[coordenadas.length - 1], {
+        radius: 8,
+        fillColor: '#e94560',
+        color: 'white',
+        weight: 2,
+        fillOpacity: 1
+      }).addTo(mapa).bindPopup('Fin del recorrido');
+      marcadoresActuales.push(fin);
+
+      // Puntos intermedios clickeables con coordenadas
+      puntos.forEach((p, i) => {
+        if (i === 0 || i === puntos.length - 1) return;
+        const m = L.circleMarker([p.lat, p.lng], {
+          radius: 4,
+          fillColor: '#f39c12',
+          color: 'white',
+          weight: 1,
+          fillOpacity: 0.8
+        }).addTo(mapa).bindPopup(
+          `<b>Punto ${i + 1}</b><br>Lat: ${p.lat}<br>Lng: ${p.lng}<br>${p.timestamp ? new Date(p.timestamp).toLocaleTimeString('es-PE') : ''}`
+        );
+        marcadoresActuales.push(m);
+      });
+
+      // Ajustar vista al recorrido
+      mapa.fitBounds(lineaActual.getBounds(), { padding: [20, 20] });
+      setTimeout(() => mapa.invalidateSize(), 100);
+
+    } catch(e) {
+      console.error('Error cargando puntos:', e);
+    }
+  }
+
+  cargarRecorridos();
+</script>
+</body>
+</html>
