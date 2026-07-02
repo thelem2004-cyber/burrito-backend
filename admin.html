@@ -18,64 +18,93 @@
       border-bottom: 2px solid #0f3460;
     }
     header h1 { font-size: 18px; color: #e94560; }
-    #btn-trazado {
-      background: #e94560;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: bold;
+    .btn-header {
+      color: white; border: none; padding: 8px 14px;
+      border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;
     }
-    #btn-trazado:hover { background: #c0392b; }
     #contenedor { display: flex; height: calc(100vh - 52px); }
     #mapa { flex: 1; }
     #panel {
-      width: 260px;
-      background: #16213e;
-      padding: 15px;
-      overflow-y: auto;
-      border-left: 2px solid #0f3460;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      width: 270px; background: #16213e; padding: 15px;
+      overflow-y: auto; border-left: 2px solid #0f3460;
+      display: flex; flex-direction: column; gap: 12px;
     }
     .seccion { background: #0f3460; border-radius: 8px; padding: 12px; }
     .seccion h2 { font-size: 13px; color: #e94560; margin-bottom: 10px; }
-    .toggle-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-    .toggle-row input[type="checkbox"] {
-      width: 16px; height: 16px; cursor: pointer; accent-color: #e94560;
-    }
     .bus-card {
-      background: #16213e;
-      border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 8px;
-      border-left: 4px solid #e94560;
-      font-size: 12px;
+      background: #16213e; border-radius: 6px; padding: 10px;
+      margin-bottom: 8px; border-left: 4px solid #e94560; font-size: 12px;
     }
     .bus-card.sin-señal { border-left-color: #888; opacity: 0.7; }
     .bus-card h3 { font-size: 13px; margin-bottom: 4px; }
     .bus-card p { color: #ccc; margin: 2px 0; }
     .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 11px;
-      font-weight: bold;
-      margin-top: 4px;
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 11px; font-weight: bold; margin-top: 4px;
     }
     .badge.activo { background: #27ae60; }
     .badge.sin-señal { background: #888; }
     #ultimo-update { font-size: 11px; color: #888; }
     .leyenda p { font-size: 12px; margin: 3px 0; color: #ccc; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 1000;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.activo { display: flex; }
+    .modal {
+      background: #16213e; border-radius: 12px; padding: 24px;
+      width: 500px; max-width: 95vw; max-height: 85vh;
+      overflow-y: auto; border: 2px solid #0f3460;
+    }
+    .modal h2 { color: #e94560; margin-bottom: 16px; font-size: 16px; }
+    .modal input, .modal select {
+      width: 100%; padding: 10px 12px; margin-bottom: 10px;
+      background: #0f3460; border: 1px solid #2e4a7a; border-radius: 6px;
+      color: white; font-size: 13px;
+    }
+    .modal input::placeholder { color: #888; }
+    .modal-btns { display: flex; gap: 8px; margin-top: 8px; }
+    .btn-primary {
+      flex: 1; padding: 10px; background: #e94560; color: white;
+      border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;
+    }
+    .btn-secondary {
+      flex: 1; padding: 10px; background: #0f3460; color: white;
+      border: none; border-radius: 6px; cursor: pointer; font-size: 13px;
+    }
+    .btn-danger {
+      padding: 6px 10px; background: #c0392b; color: white;
+      border: none; border-radius: 4px; cursor: pointer; font-size: 11px;
+    }
+    .btn-edit {
+      padding: 6px 10px; background: #2e75b6; color: white;
+      border: none; border-radius: 4px; cursor: pointer; font-size: 11px;
+    }
+    .item-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #0f3460; border-radius: 6px; padding: 10px 12px;
+      margin-bottom: 8px; font-size: 13px;
+    }
+    .item-row .info { flex: 1; }
+    .item-row .info span { display: block; font-size: 11px; color: #aaa; margin-top: 2px; }
+    .item-row .acciones { display: flex; gap: 6px; }
+    .msg-ok { color: #27ae60; font-size: 12px; margin-top: 8px; }
+    .msg-err { color: #e94560; font-size: 12px; margin-top: 8px; }
+    .tipo-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 10px; font-weight: bold;
+    }
+    .tipo-badge.conductor { background: #e94560; }
+    .tipo-badge.pasajero { background: #2e75b6; }
+    .activo-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 10px; font-weight: bold;
+    }
+    .activo-badge.libre { background: #27ae60; }
+    .activo-badge.en-uso { background: #888; }
   </style>
 </head>
 <body>
@@ -83,29 +112,20 @@
 <header>
   <h1>🚌 El Burrito — Panel Admin</h1>
   <div style="display:flex; gap:8px;">
-    <button onclick="window.location.href='/recorridos/pagina'"
-      style="background:#0f3460;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;">
-      📋 Recorridos
-    </button>
-    <button onclick="window.location.href='/trazado/pagina'"
-      style="background:#e94560;color:white;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;">
-      ✏️ Trazar Ruta
-    </button>
+    <button class="btn-header" onclick="abrirModalUsuarios()"
+      style="background:#27ae60;">👥 Usuarios</button>
+    <button class="btn-header" onclick="abrirModalBuses()"
+      style="background:#f39c12;">🚌 Buses</button>
+    <button class="btn-header" onclick="window.location.href='/recorridos/pagina'"
+      style="background:#0f3460;">📋 Recorridos</button>
+    <button class="btn-header"
+      style="background:#e94560;">✏️ Trazar Ruta</button>
   </div>
 </header>
 
 <div id="contenedor">
   <div id="mapa"></div>
   <div id="panel">
-
-    <div class="seccion">
-      <h2>⚙️ Opciones de visualización</h2>
-      <label class="toggle-row">
-        <input type="checkbox" id="chk-rutas" onchange="toggleRutas()">
-        Visualizar rutas trazadas
-      </label>
-    </div>
-
     <div class="seccion">
       <h2>🗺️ Leyenda</h2>
       <div class="leyenda">
@@ -114,23 +134,105 @@
         <p>📍 Paradero</p>
       </div>
     </div>
-
     <div class="seccion">
       <h2>🟢 Buses en servicio</h2>
       <div id="lista-buses">Cargando...</div>
       <p id="ultimo-update"></p>
     </div>
+  </div>
+</div>
 
+<!-- MODAL USUARIOS -->
+<div class="modal-overlay" id="modal-usuarios">
+  <div class="modal">
+    <h2>👥 Gestión de Usuarios</h2>
+
+    <!-- Formulario crear -->
+    <div style="margin-bottom:16px;">
+      <p style="font-size:12px;color:#aaa;margin-bottom:8px;">Nuevo usuario</p>
+      <input type="text" id="u-nombre" placeholder="Nombre completo">
+      <input type="email" id="u-correo" placeholder="Correo electrónico">
+      <input type="password" id="u-password" placeholder="Contraseña">
+      <select id="u-tipo">
+        <option value="pasajero">Pasajero</option>
+        <option value="conductor">Conductor</option>
+      </select>
+      <button class="btn-primary" onclick="crearUsuario()">+ Crear usuario</button>
+      <p id="msg-usuario" class="msg-ok"></p>
+    </div>
+
+    <!-- Lista usuarios -->
+    <p style="font-size:12px;color:#aaa;margin-bottom:8px;">Usuarios registrados</p>
+    <div id="lista-usuarios">Cargando...</div>
+
+    <div class="modal-btns" style="margin-top:16px;">
+      <button class="btn-secondary" onclick="cerrarModal('modal-usuarios')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR USUARIO -->
+<div class="modal-overlay" id="modal-editar-usuario">
+  <div class="modal">
+    <h2>✏️ Editar Usuario</h2>
+    <input type="hidden" id="eu-id">
+    <input type="text" id="eu-nombre" placeholder="Nombre completo">
+    <select id="eu-tipo">
+      <option value="pasajero">Pasajero</option>
+      <option value="conductor">Conductor</option>
+    </select>
+    <p id="msg-editar-usuario" class="msg-ok"></p>
+    <div class="modal-btns">
+      <button class="btn-primary" onclick="guardarUsuario()">Guardar</button>
+      <button class="btn-secondary" onclick="cerrarModal('modal-editar-usuario')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BUSES -->
+<div class="modal-overlay" id="modal-buses">
+  <div class="modal">
+    <h2>🚌 Gestión de Buses</h2>
+
+    <!-- Formulario crear -->
+    <div style="margin-bottom:16px;">
+      <p style="font-size:12px;color:#aaa;margin-bottom:8px;">Nuevo bus</p>
+      <input type="text" id="b-placa" placeholder="Placa (ej. BFK-309)">
+      <button class="btn-primary" onclick="crearBus()">+ Crear bus</button>
+      <p id="msg-bus" class="msg-ok"></p>
+    </div>
+
+    <!-- Lista buses -->
+    <p style="font-size:12px;color:#aaa;margin-bottom:8px;">Buses registrados</p>
+    <div id="lista-buses-admin">Cargando...</div>
+
+    <div class="modal-btns" style="margin-top:16px;">
+      <button class="btn-secondary" onclick="cerrarModal('modal-buses')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR BUS -->
+<div class="modal-overlay" id="modal-editar-bus">
+  <div class="modal">
+    <h2>✏️ Editar Bus</h2>
+    <input type="hidden" id="eb-id">
+    <input type="text" id="eb-placa" placeholder="Nueva placa">
+    <p id="msg-editar-bus" class="msg-ok"></p>
+    <div class="modal-btns">
+      <button class="btn-primary" onclick="guardarBus()">Guardar</button>
+      <button class="btn-secondary" onclick="cerrarModal('modal-editar-bus')">Cancelar</button>
+    </div>
   </div>
 </div>
 
 <script>
+  // ── Mapa ──────────────────────────────────────────────────────────────────
   const mapa = L.map('mapa').setView([-11.9700, -77.0450], 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
   }).addTo(mapa);
 
-  // ─── Iconos ───────────────────────────────────────────────────────────────
   function iconoBus(conSenial) {
     return L.divIcon({
       className: '',
@@ -146,7 +248,6 @@
     });
   }
 
-  // ─── Paraderos ────────────────────────────────────────────────────────────
   async function cargarParaderos() {
     try {
       const res = await fetch('/rutas');
@@ -155,51 +256,13 @@
         for (const p of ruta.paraderos) {
           L.marker([p.lat, p.lng], { icon: iconoParadero() })
             .addTo(mapa)
-            .bindPopup(`<b>${p.nombre}</b><br>Ruta: ${ruta.nombre}<br>ID: ${p.id}`);
+            .bindPopup(`<b>${p.nombre}</b><br>Ruta: ${ruta.nombre}`);
         }
       }
     } catch(e) { console.error('Error paraderos:', e); }
   }
 
-  // ─── Rutas trazadas ───────────────────────────────────────────────────────
-  let capasRutas = [];
-  let rutasCargadas = false;
-
-  async function toggleRutas() {
-    const activo = document.getElementById('chk-rutas').checked;
-    if (activo) {
-      if (!rutasCargadas) await cargarRutas();
-      capasRutas.forEach(c => c.addTo(mapa));
-    } else {
-      capasRutas.forEach(c => mapa.removeLayer(c));
-    }
-  }
-
-  async function cargarRutas() {
-    try {
-      const res = await fetch('/trazado/todas');
-      const data = await res.json();
-      capasRutas = [];
-      for (const [ruta, lapices] of Object.entries(data.trazados)) {
-        for (const lapiz of lapices) {
-          if (lapiz.puntos.length > 1) {
-            const linea = L.polyline(lapiz.puntos, {
-              color: lapiz.color,
-              weight: 4,
-              opacity: 0.85
-            });
-            linea.bindPopup(`Ruta: ${ruta}`);
-            capasRutas.push(linea);
-          }
-        }
-      }
-      rutasCargadas = true;
-    } catch(e) { console.error('Error rutas:', e); }
-  }
-
-  // ─── Buses ────────────────────────────────────────────────────────────────
   const marcadores = {};
-
   async function actualizarBuses() {
     try {
       const res = await fetch('/buses');
@@ -217,7 +280,7 @@
         } else {
           marcadores[bus.bus_id] = L.marker([bus.latitud, bus.longitud], {
             icon: iconoBus(bus.con_señal)
-          }).addTo(mapa).bindPopup(`<b>${bus.bus_id}</b><br>Ruta: ${bus.ruta}<br>${bus.con_señal ? '✅ Activo' : '❌ Sin señal'}`);
+          }).addTo(mapa).bindPopup(`<b>${bus.bus_id}</b><br>Ruta: ${bus.ruta}`);
         }
         const card = document.createElement('div');
         card.className = `bus-card ${bus.con_señal ? '' : 'sin-señal'}`;
@@ -240,10 +303,236 @@
     }
   }
 
+  // ── Modales ───────────────────────────────────────────────────────────────
+  function cerrarModal(id) {
+    document.getElementById(id).classList.remove('activo');
+  }
+
+  // ── USUARIOS ──────────────────────────────────────────────────────────────
+  async function abrirModalUsuarios() {
+    document.getElementById('modal-usuarios').classList.add('activo');
+    await cargarUsuarios();
+  }
+
+  async function cargarUsuarios() {
+    try {
+      const res = await fetch('/usuarios/');
+      const data = await res.json();
+      const lista = document.getElementById('lista-usuarios');
+      if (data.usuarios.length === 0) {
+        lista.innerHTML = '<p style="color:#888;font-size:12px;">Sin usuarios.</p>';
+        return;
+      }
+      lista.innerHTML = '';
+      data.usuarios.forEach(u => {
+        const div = document.createElement('div');
+        div.className = 'item-row';
+        div.innerHTML = `
+          <div class="info">
+            <b>${u.nombre}</b>
+            <span>${u.correo}</span>
+            <span><span class="tipo-badge ${u.tipo}">${u.tipo}</span></span>
+          </div>
+          <div class="acciones">
+            <button class="btn-edit" onclick="abrirEditarUsuario(${u.id},'${u.nombre}','${u.tipo}')">✏️</button>
+            <button class="btn-danger" onclick="eliminarUsuario(${u.id})">🗑️</button>
+          </div>`;
+        lista.appendChild(div);
+      });
+    } catch(e) {
+      document.getElementById('lista-usuarios').innerHTML =
+        '<p style="color:#e94560;">Error cargando usuarios.</p>';
+    }
+  }
+
+  async function crearUsuario() {
+    const nombre = document.getElementById('u-nombre').value.trim();
+    const correo = document.getElementById('u-correo').value.trim();
+    const password = document.getElementById('u-password').value.trim();
+    const tipo = document.getElementById('u-tipo').value;
+    const msg = document.getElementById('msg-usuario');
+    if (!nombre || !correo || !password) {
+      msg.className = 'msg-err'; msg.textContent = 'Completa todos los campos.'; return;
+    }
+    try {
+      const res = await fetch('/usuarios/registro', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({nombre, correo, password, tipo}),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        msg.className = 'msg-ok';
+        msg.textContent = `✅ Usuario creado (ID: ${data.id})`;
+        document.getElementById('u-nombre').value = '';
+        document.getElementById('u-correo').value = '';
+        document.getElementById('u-password').value = '';
+        await cargarUsuarios();
+      } else {
+        msg.className = 'msg-err'; msg.textContent = '❌ ' + data.detail;
+      }
+    } catch(e) {
+      msg.className = 'msg-err'; msg.textContent = '❌ Error de conexión.';
+    }
+  }
+
+  function abrirEditarUsuario(id, nombre, tipo) {
+    document.getElementById('eu-id').value = id;
+    document.getElementById('eu-nombre').value = nombre;
+    document.getElementById('eu-tipo').value = tipo;
+    document.getElementById('msg-editar-usuario').textContent = '';
+    document.getElementById('modal-editar-usuario').classList.add('activo');
+  }
+
+  async function guardarUsuario() {
+    const id = document.getElementById('eu-id').value;
+    const nombre = document.getElementById('eu-nombre').value.trim();
+    const tipo = document.getElementById('eu-tipo').value;
+    const msg = document.getElementById('msg-editar-usuario');
+    try {
+      const res = await fetch(`/usuarios/${id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({nombre, tipo}),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        msg.className = 'msg-ok'; msg.textContent = '✅ Guardado correctamente';
+        cerrarModal('modal-editar-usuario');
+        await cargarUsuarios();
+      } else {
+        msg.className = 'msg-err'; msg.textContent = '❌ ' + data.detail;
+      }
+    } catch(e) {
+      msg.className = 'msg-err'; msg.textContent = '❌ Error de conexión.';
+    }
+  }
+
+  async function eliminarUsuario(id) {
+    if (!confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
+    try {
+      const res = await fetch(`/usuarios/${id}`, { method: 'DELETE' });
+      if (res.ok) await cargarUsuarios();
+      else {
+        const data = await res.json();
+        alert('Error: ' + data.detail);
+      }
+    } catch(e) { alert('Error de conexión.'); }
+  }
+
+  // ── BUSES ─────────────────────────────────────────────────────────────────
+  async function abrirModalBuses() {
+    document.getElementById('modal-buses').classList.add('activo');
+    await cargarBusesAdmin();
+  }
+
+  async function cargarBusesAdmin() {
+    try {
+      const res = await fetch('/buses/todos');
+      const data = await res.json();
+      const lista = document.getElementById('lista-buses-admin');
+      if (data.buses.length === 0) {
+        lista.innerHTML = '<p style="color:#888;font-size:12px;">Sin buses.</p>';
+        return;
+      }
+      lista.innerHTML = '';
+      data.buses.forEach(b => {
+        const div = document.createElement('div');
+        div.className = 'item-row';
+        div.innerHTML = `
+          <div class="info">
+            <b>${b.placa}</b>
+            <span>Ruta: ${b.ruta || '—'}</span>
+            <span><span class="activo-badge ${b.activo ? 'en-uso' : 'libre'}">${b.activo ? 'En uso' : 'Libre'}</span></span>
+          </div>
+          <div class="acciones">
+            ${!b.activo ? `<button class="btn-edit" onclick="abrirEditarBus(${b.id},'${b.placa}')">✏️</button>` : ''}
+            ${b.activo ? `<button class="btn-secondary" style="padding:6px 10px;font-size:11px;" onclick="liberarBus(${b.id})">🔓</button>` : ''}
+            ${!b.activo ? `<button class="btn-danger" onclick="eliminarBus(${b.id})">🗑️</button>` : ''}
+          </div>`;
+        lista.appendChild(div);
+      });
+    } catch(e) {
+      document.getElementById('lista-buses-admin').innerHTML =
+        '<p style="color:#e94560;">Error cargando buses.</p>';
+    }
+  }
+
+  async function crearBus() {
+    const placa = document.getElementById('b-placa').value.trim().toUpperCase();
+    const msg = document.getElementById('msg-bus');
+    if (!placa) { msg.className = 'msg-err'; msg.textContent = 'Ingresa una placa.'; return; }
+    try {
+      const res = await fetch('/buses/nuevo', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({placa}),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        msg.className = 'msg-ok'; msg.textContent = `✅ Bus ${data.placa} creado`;
+        document.getElementById('b-placa').value = '';
+        await cargarBusesAdmin();
+      } else {
+        msg.className = 'msg-err'; msg.textContent = '❌ ' + data.detail;
+      }
+    } catch(e) {
+      msg.className = 'msg-err'; msg.textContent = '❌ Error de conexión.';
+    }
+  }
+
+  function abrirEditarBus(id, placa) {
+    document.getElementById('eb-id').value = id;
+    document.getElementById('eb-placa').value = placa;
+    document.getElementById('msg-editar-bus').textContent = '';
+    document.getElementById('modal-editar-bus').classList.add('activo');
+  }
+
+  async function guardarBus() {
+    const id = document.getElementById('eb-id').value;
+    const placa = document.getElementById('eb-placa').value.trim().toUpperCase();
+    const msg = document.getElementById('msg-editar-bus');
+    try {
+      const res = await fetch(`/buses/${id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({placa}),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        msg.className = 'msg-ok'; msg.textContent = '✅ Bus actualizado';
+        cerrarModal('modal-editar-bus');
+        await cargarBusesAdmin();
+      } else {
+        msg.className = 'msg-err'; msg.textContent = '❌ ' + data.detail;
+      }
+    } catch(e) {
+      msg.className = 'msg-err'; msg.textContent = '❌ Error de conexión.';
+    }
+  }
+
+  async function eliminarBus(id) {
+    if (!confirm('¿Eliminar este bus? Esta acción no se puede deshacer.')) return;
+    try {
+      const res = await fetch(`/buses/${id}`, { method: 'DELETE' });
+      if (res.ok) await cargarBusesAdmin();
+      else { const data = await res.json(); alert('Error: ' + data.detail); }
+    } catch(e) { alert('Error de conexión.'); }
+  }
+
+  async function liberarBus(id) {
+    if (!confirm('¿Liberar este bus? El conductor activo perderá la sesión.')) return;
+    try {
+      const res = await fetch(`/buses/${id}/liberar`, { method: 'POST' });
+      if (res.ok) await cargarBusesAdmin();
+      else { const data = await res.json(); alert('Error: ' + data.detail); }
+    } catch(e) { alert('Error de conexión.'); }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
   cargarParaderos();
   actualizarBuses();
   setInterval(actualizarBuses, 3000);
 </script>
 </body>
 </html>
-
