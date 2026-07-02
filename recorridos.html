@@ -151,11 +151,13 @@
         card.id = `rec-${r.id}`;
 
         const inicio = r.hora_inicio
-          ? new Date(r.hora_inicio).toLocaleString('es-PE')
-          : '—';
+        ? new Date(r.hora_inicio + 'Z').toLocaleString('es-PE',
+        {timeZone: 'America/Lima'})
+        : '—';
         const fin = r.hora_fin
-          ? new Date(r.hora_fin).toLocaleString('es-PE')
-          : 'En curso';
+        ? new Date(r.hora_fin + 'Z').toLocaleString('es-PE',
+        {timeZone: 'America/Lima'})
+        : 'En curso';
 
         card.innerHTML = `
           <h3>🚌 ${r.bus_placa} — ${r.ruta}</h3>
