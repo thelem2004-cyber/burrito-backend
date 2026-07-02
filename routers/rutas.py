@@ -32,17 +32,17 @@ class RutaResponse(BaseModel):
     puntos: List[List[float]]
 
 
-@router.post("/trazar", summary="Trazar ruta con OpenRouteService")
+@router.post("/trazar", summary="Trazar o actualizar ruta con OpenRouteService")
 async def trazar_ruta(datos: CrearRuta, db: Session = Depends(get_db)):
     """
-    El admin envía puntos clave de la ruta.
+    El admin envía los puntos exactos de la ruta.
     ORS genera la ruta real siguiendo calles de Lima.
+    Si ya existe la ruta, la sobreescribe (upsert).
     """
     if len(datos.puntos) < 2:
         raise HTTPException(status_code=400,
             detail="Se necesitan al menos 2 puntos para trazar una ruta")
 
-    # Llamar a ORS tramo por tramo y unir los puntos
     todos_los_puntos = []
     duracion_total = 0
     distancia_total = 0
@@ -62,28 +62,38 @@ async def trazar_ruta(datos: CrearRuta, db: Session = Depends(get_db)):
             raise HTTPException(status_code=500,
                 detail=f"Error al trazar tramo {i+1}: {str(e)}")
 
-    # Guardar en base de datos
     import json
-    ruta = RutaTrazadaAdmin(
-        nombre=datos.nombre,
-        ruta_clave=datos.ruta_clave,
-        puntos=json.dumps(todos_los_puntos),
-        duracion_segundos=duracion_total,
-        distancia_metros=distancia_total,
-    )
-    db.add(ruta)
+
+    # Upsert — actualiza si existe, crea si no
+    ruta = db.query(RutaTrazadaAdmin).filter(
+        RutaTrazadaAdmin.ruta_clave == datos.ruta_clave).first()
+
+    if ruta:
+        ruta.nombre = datos.nombre
+        ruta.puntos = json.dumps(todos_los_puntos)
+        ruta.duracion_segundos = duracion_total
+        ruta.distancia_metros = distancia_total
+    else:
+        ruta = RutaTrazadaAdmin(
+            nombre=datos.nombre,
+            ruta_clave=datos.ruta_clave,
+            puntos=json.dumps(todos_los_puntos),
+            duracion_segundos=duracion_total,
+            distancia_metros=distancia_total,
+        )
+        db.add(ruta)
+
     db.commit()
     db.refresh(ruta)
 
     return {
-        "mensaje": "Ruta trazada correctamente",
+        "mensaje": "Ruta guardada correctamente",
         "id": ruta.id,
         "nombre": ruta.nombre,
         "duracion_minutos": round(duracion_total / 60, 1),
         "distancia_km": round(distancia_total / 1000, 2),
         "puntos": todos_los_puntos,
     }
-
 
 @router.get("/", summary="Listar todas las rutas trazadas")
 def listar_rutas(db: Session = Depends(get_db)):
@@ -128,3 +138,13 @@ def eliminar_ruta(ruta_id: int, db: Session = Depends(get_db)):
     db.delete(ruta)
     db.commit()
     return {"mensaje": "Ruta eliminada"}
+
+
+from fastapi.responses import FileResponse
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+@router.get("/pagina", summary="Página de trazado de rutas")
+def pagina_trazado():
+    return FileResponse(BASE_DIR / "trazado.html")
