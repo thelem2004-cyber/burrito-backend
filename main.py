@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import conductor, pasajero, buses, usuarios, recorridos
+from routers import conductor, pasajero, buses, usuarios, recorridos, rutas
 from database.conexion import engine
 from database import modelos
 from database.conexion import SessionLocal
@@ -18,6 +18,7 @@ app.include_router(pasajero.router)
 app.include_router(buses.router)
 app.include_router(usuarios.router)
 app.include_router(recorridos.router)
+app.include_router(rutas.router)
 
 
 def poblar_buses():

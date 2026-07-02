@@ -77,3 +77,14 @@ class Incidente(Base):
     ruta        = Column(String, nullable=False)
     activo      = Column(Boolean, default=True)
     creado_en   = Column(DateTime, server_default=func.now())
+
+    class RutaTrazadaAdmin(Base):
+    __tablename__ = "rutas_trazadas_admin"
+
+    id                = Column(Integer, primary_key=True, index=True)
+    nombre            = Column(String, nullable=False)  # "Ruta Norte"
+    ruta_clave        = Column(String, nullable=False)  # "cono_norte"
+    puntos            = Column(String, nullable=False)  # JSON [[lat,lng],...]
+    duracion_segundos = Column(Float, nullable=False)
+    distancia_metros  = Column(Float, nullable=False)
+    creado_en         = Column(DateTime, server_default=func.now())
