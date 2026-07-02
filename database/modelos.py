@@ -78,7 +78,7 @@ class Incidente(Base):
     activo      = Column(Boolean, default=True)
     creado_en   = Column(DateTime, server_default=func.now())
 
-    class RutaTrazadaAdmin(Base):
+class RutaTrazadaAdmin(Base):
     __tablename__ = "rutas_trazadas_admin"
 
     id                = Column(Integer, primary_key=True, index=True)
