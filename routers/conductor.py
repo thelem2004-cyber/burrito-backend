@@ -6,7 +6,7 @@ from database.conexion import get_db
 from database.modelos import Bus, Recorrido, PuntoRecorrido
 from models.bus import PosicionBus
 from services import tracking
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/conductor", tags=["Conductor"])
 
@@ -39,11 +39,12 @@ def iniciar_turno(datos: IniciarTurno, db: Session = Depends(get_db)):
     bus.ruta = datos.ruta
     db.commit()
 
-    # Crear nuevo recorrido
+    from datetime import datetime, timezone
+
     recorrido = Recorrido(
         bus_placa=datos.placa,
         ruta=datos.ruta,
-        hora_inicio=datetime.now(),
+        hora_inicio=datetime.now(timezone.utc),
     )
     db.add(recorrido)
     db.commit()
@@ -108,7 +109,7 @@ def detener_turno(datos: DetenerTurno, db: Session = Depends(get_db)):
     ).order_by(Recorrido.id.desc()).first()
 
     if recorrido:
-        recorrido.hora_fin = datetime.now()
+        recorrido.hora_fin = datetime.now(timezone.utc)
         recorrido.completado = True
         db.commit()
 

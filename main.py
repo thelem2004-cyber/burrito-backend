@@ -21,14 +21,13 @@ app.include_router(recorridos.router)
 
 
 def poblar_buses():
-    """Agrega los buses reales al sistema si no existen."""
     db = SessionLocal()
     try:
         buses_iniciales = [
-            {"placa": "BUS-01", "ruta": None},
-            {"placa": "BUS-02", "ruta": None},
-            {"placa": "BUS-03", "ruta": None},
-            {"placa": "BUS-04", "ruta": None},
+            {"placa": "BUS-001", "ruta": None},
+            {"placa": "BUS-002", "ruta": None},
+            {"placa": "BUS-003", "ruta": None},
+            {"placa": "BUS-004", "ruta": None},
         ]
         for b in buses_iniciales:
             existe = db.query(Bus).filter(Bus.placa == b["placa"]).first()
