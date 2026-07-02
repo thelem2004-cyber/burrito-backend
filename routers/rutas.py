@@ -1,15 +1,18 @@
 # routers/rutas.py
-# Endpoints para trazado de rutas con OpenRouteService.
-
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List
+from pathlib import Path
 from database.conexion import get_db
 from database.modelos import RutaTrazadaAdmin
 from services.ors import obtener_ruta
+import json
 
 router = APIRouter(prefix="/rutas-admin", tags=["Rutas Admin"])
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class PuntoRuta(BaseModel):
@@ -19,26 +22,36 @@ class PuntoRuta(BaseModel):
 
 class CrearRuta(BaseModel):
     nombre: str
-    ruta_clave: str  # "cono_norte", "cono_sur", etc.
+    ruta_clave: str
     puntos: List[PuntoRuta]
 
 
-class RutaResponse(BaseModel):
-    id: int
-    nombre: str
-    ruta_clave: str
-    duracion_segundos: float
-    distancia_metros: float
-    puntos: List[List[float]]
+# ── Página de trazado (DEBE ir antes de /{ruta_id}) ───────────────────────
+@router.get("/pagina", summary="Página de trazado de rutas")
+def pagina_trazado():
+    return FileResponse(BASE_DIR / "trazado.html")
 
 
+# ── Listar todas las rutas ─────────────────────────────────────────────────
+@router.get("/", summary="Listar todas las rutas trazadas")
+def listar_rutas(db: Session = Depends(get_db)):
+    rutas = db.query(RutaTrazadaAdmin).all()
+    return {"rutas": [
+        {
+            "id": r.id,
+            "nombre": r.nombre,
+            "ruta_clave": r.ruta_clave,
+            "duracion_minutos": round(r.duracion_segundos / 60, 1),
+            "distancia_km": round(r.distancia_metros / 1000, 2),
+            "puntos": json.loads(r.puntos),
+        }
+        for r in rutas
+    ]}
+
+
+# ── Trazar o actualizar ruta con ORS ──────────────────────────────────────
 @router.post("/trazar", summary="Trazar o actualizar ruta con OpenRouteService")
 async def trazar_ruta(datos: CrearRuta, db: Session = Depends(get_db)):
-    """
-    El admin envía los puntos exactos de la ruta.
-    ORS genera la ruta real siguiendo calles de Lima.
-    Si ya existe la ruta, la sobreescribe (upsert).
-    """
     if len(datos.puntos) < 2:
         raise HTTPException(status_code=400,
             detail="Se necesitan al menos 2 puntos para trazar una ruta")
@@ -62,9 +75,6 @@ async def trazar_ruta(datos: CrearRuta, db: Session = Depends(get_db)):
             raise HTTPException(status_code=500,
                 detail=f"Error al trazar tramo {i+1}: {str(e)}")
 
-    import json
-
-    # Upsert — actualiza si existe, crea si no
     ruta = db.query(RutaTrazadaAdmin).filter(
         RutaTrazadaAdmin.ruta_clave == datos.ruta_clave).first()
 
@@ -95,26 +105,10 @@ async def trazar_ruta(datos: CrearRuta, db: Session = Depends(get_db)):
         "puntos": todos_los_puntos,
     }
 
-@router.get("/", summary="Listar todas las rutas trazadas")
-def listar_rutas(db: Session = Depends(get_db)):
-    import json
-    rutas = db.query(RutaTrazadaAdmin).all()
-    return {"rutas": [
-        {
-            "id": r.id,
-            "nombre": r.nombre,
-            "ruta_clave": r.ruta_clave,
-            "duracion_minutos": round(r.duracion_segundos / 60, 1),
-            "distancia_km": round(r.distancia_metros / 1000, 2),
-            "puntos": json.loads(r.puntos),
-        }
-        for r in rutas
-    ]}
 
-
+# ── Obtener una ruta por ID ────────────────────────────────────────────────
 @router.get("/{ruta_id}", summary="Obtener una ruta trazada")
 def obtener_ruta_admin(ruta_id: int, db: Session = Depends(get_db)):
-    import json
     ruta = db.query(RutaTrazadaAdmin).filter(
         RutaTrazadaAdmin.id == ruta_id).first()
     if not ruta:
@@ -129,6 +123,7 @@ def obtener_ruta_admin(ruta_id: int, db: Session = Depends(get_db)):
     }
 
 
+# ── Eliminar una ruta ─────────────────────────────────────────────────────
 @router.delete("/{ruta_id}", summary="Eliminar una ruta trazada")
 def eliminar_ruta(ruta_id: int, db: Session = Depends(get_db)):
     ruta = db.query(RutaTrazadaAdmin).filter(
@@ -138,13 +133,3 @@ def eliminar_ruta(ruta_id: int, db: Session = Depends(get_db)):
     db.delete(ruta)
     db.commit()
     return {"mensaje": "Ruta eliminada"}
-
-
-from fastapi.responses import FileResponse
-from pathlib import Path
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-@router.get("/pagina", summary="Página de trazado de rutas")
-def pagina_trazado():
-    return FileResponse(BASE_DIR / "trazado.html")
