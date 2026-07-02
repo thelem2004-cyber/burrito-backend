@@ -25,15 +25,15 @@ def poblar_buses():
     db = SessionLocal()
     try:
         buses_iniciales = [
-            {"placa": "BUS-001", "ruta": None},
-            {"placa": "BUS-002", "ruta": None},
-            {"placa": "BUS-003", "ruta": None},
-            {"placa": "BUS-004", "ruta": None},
+            {"placa": "BUS-01"},
+            {"placa": "BUS-02"},
+            {"placa": "BUS-03"},
+            {"placa": "BUS-04"},
         ]
         for b in buses_iniciales:
             existe = db.query(Bus).filter(Bus.placa == b["placa"]).first()
             if not existe:
-                db.add(Bus(placa=b["placa"], ruta=b["ruta"], activo=False))
+                db.add(Bus(placa=b["placa"], activo=False))
         db.commit()
     finally:
         db.close()
